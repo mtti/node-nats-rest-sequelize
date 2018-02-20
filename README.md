@@ -1,4 +1,4 @@
-Publish [Sequelize](http://docs.sequelizejs.com/) models RESTfully over (NATS)[https://nats.io]. Expands upon my [nats-rest](https://www.npmjs.com/package/@mtti/nats-rest) library which implements a storage-independent RESTful API over NATS.
+Publish [Sequelize](http://docs.sequelizejs.com/) models RESTfully over [NATS](https://nats.io). Expands upon my [nats-rest](https://www.npmjs.com/package/@mtti/nats-rest) library which implements a storage-independent RESTful API over NATS.
 
 ## Example
 
