@@ -15,8 +15,6 @@
   "dependencies": {
     "http-errors": "1.6.2",
     "lodash": "4.17.5",
-    "nats": "0.7.24",
-    "sequelize": "4.33.4",
     "@mtti/nats-rest": "0.1.0"
   },
   "devDependencies": {
