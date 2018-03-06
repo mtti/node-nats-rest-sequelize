@@ -12,12 +12,19 @@ class SequelizeResource {
       this._logger = options.logger;
     }
 
-    this._handlers = {
-      GET: this._get.bind(this),
-      PUT: this._put.bind(this),
-      PATCH: this._patch.bind(this),
-      DELETE: this._delete.bind(this),
-    };
+    this._handlers = {};
+    if (options.defaultHandlers !== false) {
+      this._handlers = {
+        GET: this._get.bind(this),
+        PUT: this._put.bind(this),
+        PATCH: this._patch.bind(this),
+        DELETE: this._delete.bind(this),
+      };
+    }
+
+    if (options.actions) {
+      _.merge(this._handlers, options.actions);
+    }
   }
 
   start() {
