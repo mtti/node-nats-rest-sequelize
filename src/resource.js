@@ -3,6 +3,28 @@ const createError = require('http-errors');
 const { ResourceServer } = require('@mtti/nats-rest');
 
 class SequelizeResource {
+  /**
+   * Return a @mtti/microservice plugin which creates and starts a SequelizeResource for every
+   * Sequelize model in the project with exportResource set to true.
+   * @param {*} actions
+   */
+  static plugin(actions = {}) {
+    return {
+      init: (service) => {
+        _.toPairs(service.models)
+          .filter(pair => pair[1].exportResource === true)
+          .map(pair => new SequelizeResource(
+            service.natsClient,
+            pair[1],
+            { logger: service.logger, actions: actions[pair[0]]})
+          )
+          .forEach((resource) => {
+            resource.start();
+          });
+      }
+    }
+  }
+
   constructor(natsClient, model, options = {}) {
     this._natsClient = natsClient;
     this._model = model;
