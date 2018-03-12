@@ -8,7 +8,7 @@ class SequelizeResource {
    * Sequelize model in the project with exportResource set to true.
    * @param {*} actions
    */
-  static plugin(actions = {}) {
+  static plugin() {
     return {
       init: (service) => {
         _.toPairs(service.models)
