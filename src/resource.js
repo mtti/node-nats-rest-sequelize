@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const createError = require('http-errors');
-const { ResourceServer } = require('@mtti/nats-rest');
+const { ResourceServer, InstanceAction } = require('@mtti/nats-rest');
 
 class SequelizeResource {
   /**
@@ -34,34 +34,44 @@ class SequelizeResource {
       this._logger = options.logger;
     }
 
-    this._collectionActions = {};
-    this._instanceActions = {};
+    this._defaultBodySchema = this._model.defaultBodySchema;
+    this._jsonValidation = this._model.jsonValidation || 'permissive';
+    this._jsonSchemas = this._model.jsonSchemas || {};
+    this._actions = [];
 
-    if (options.defaultHandlers !== false) {
-      this._instanceActions = {
-        GET: this._get.bind(this),
-        PUT: this._put.bind(this),
-        PATCH: this._patch.bind(this),
-        DELETE: this._delete.bind(this),
-      };
+    if (options.defaultActions !== false) {
+      if (this._jsonValidation === 'strict' && !this._defaultBodySchema) {
+        throw new Error('defaultBodySchema is required with defaultActions and strict validation');
+      }
+
+      const getAction = new InstanceAction('GET', this._get.bind(this));
+      const putAction = new InstanceAction('PUT', this._put.bind(this))
+        .setLoadInstance(false)
+        .setBodySchema(this._defaultBodySchema);
+      const patchAction = new InstanceAction('PATCH', this._patch.bind(this))
+        .setBodySchema(this._defaultBodySchema);
+      const deleteAction = new InstanceAction('DELETE', this._delete.bind(this))
+        .setLoadInstance(false);
+
+      Array.prototype.push.apply(this._actions, [
+        getAction,
+        putAction,
+        patchAction,
+        deleteAction,
+      ]);
     }
 
-    if (this._model.collectionActions) {
-      _.merge(this._collectionActions, this._model.collectionActions);
-    }
-    if (this._model.instanceActions) {
-      const wrappedInstanceActions = _.fromPairs(
-        _.toPairs(this._model.instanceActions)
-          .map(pair => [pair[0], this._wrapInstanceAction(pair[1])])
-      );
-      _.merge(this._instanceActions, wrappedInstanceActions);
+    if (this._model.actions) {
+      Array.prototype.push.apply(this._actions, this._model.actions);
     }
   }
 
   start() {
     const serverOptions = {
-      collectionActions: this._collectionActions,
-      instanceActions: this._instanceActions,
+      instanceLoader: this._instanceLoader.bind(this),
+      jsonValidation: this._jsonValidation,
+      jsonSchemas: this._jsonSchemas,
+      actions: this._actions,
       logger: this._logger,
     };
     this._server = new ResourceServer(this._natsClient, this._name, serverOptions);
@@ -76,18 +86,18 @@ class SequelizeResource {
     this._server.start();
   }
 
-  _get(id) {
-    if (id === null) {
-      return Promise.reject(createError(404));
-    }
-
+  _instanceLoader(id) {
     return this._model.findById(id)
       .then((instance) => {
-        if (instance === null) {
-          return createError(404);
+        if (!instance) {
+          throw createError(404);
         }
-        return instance.toJSON();
+        return instance;
       });
+  }
+
+  _get(instance) {
+    return instance.toJSON();
   }
 
   _put(id, body) {
@@ -104,18 +114,8 @@ class SequelizeResource {
     return instance.save();
   }
 
-  _patch(id, body) {
-    if (!id) {
-      return Promise.reject(createError(405));
-    }
-
-    return this._model.findById(id)
-      .then((instance) => {
-        if (!instance) {
-          return createError(404);
-        }
-        return instance.update(body);
-      });
+  _patch(instance, body) {
+    return instance.update(body);
   }
 
   _delete(id) {
@@ -123,23 +123,7 @@ class SequelizeResource {
       return Promise.reject(createError(405));
     }
     return this._model.destroy({ where: { id }})
-      .then(() => null);
-  }
-
-  /**
-   * Wrap an instance action callback so that the instance it's targeting is automatically loaded
-   * and passed to the callback instead of the ID.
-   */
-  _wrapInstanceAction(action) {
-    return (id, body) => {
-      return this._model.findById(id)
-        .then((instance) => {
-          if (instance === null) {
-            return Promise.reject(createError(404));
-          }
-          return action(instance, body);
-        });
-    }
+      .then(() => ({ result: 'OK' }));
   }
 }
 
