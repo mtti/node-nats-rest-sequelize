@@ -1,5 +1,8 @@
-![status alpha](https://img.shields.io/badge/development_status-alpha-red.svg)
-[![npm version](https://badge.fury.io/js/%40mtti%2Fnats-rest-sequelize.svg)](https://badge.fury.io/js/%40mtti%2Fnats-rest-sequelize)
+![status deprecated](https://img.shields.io/badge/development_status-deprecated-lightgrey.svg)
+
+**Deprecation notice:** The functionality of this package has been merged into [@mtti/microservice-sequelize](https://github.com/mtti/node-microservice-sequelize).
+
+---
 
 Publish [Sequelize](http://docs.sequelizejs.com/) models RESTfully over [NATS](https://nats.io). Expands upon my [nats-rest](https://www.npmjs.com/package/@mtti/nats-rest) library which implements a storage-independent RESTful API over NATS.
 
